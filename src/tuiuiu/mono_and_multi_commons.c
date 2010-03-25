@@ -26,8 +26,6 @@
 #include <getopt.h>
 #include <time.h>
 #include <string.h>
-//#include "tuilist.h"
-//#include "util.h"
 #include "mono_and_multi_commons.h"
 
 inline void CountBins(int d, int e, int p, int bins[], itree **l)
