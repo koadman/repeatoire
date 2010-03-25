@@ -18,7 +18,6 @@
  	for more information, please contact guillaume achaz <achaz@abi.snv.jussieu.fr>
 */
 #include "KMRK.h"
-
 #include "repseek_types.h"
 #include "memory.h"
 
