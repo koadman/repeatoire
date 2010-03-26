@@ -1561,7 +1561,6 @@ int ExtendMatch(GappedMatchRecord*& M_i, vector< gnSequence* >& seq_table, Param
         //cga->SetMatches(mlist);
 	vector< CompactGappedAlignment<>* > cga_list;
 	CompactGappedAlignment<>* result;
-//  detectAndApplyBackbone
 	backbone_list_t bb_list;
         //cerr << left_extend_length << " " << right_extend_length << endl;
 	detectAndApplyBackbone( cga, seq_table,result,bb_list, hmm_params, direction != 1, direction == 1);//, ungapped_extension  );
@@ -1603,7 +1602,6 @@ int ExtendMatch(GappedMatchRecord*& M_i, vector< gnSequence* >& seq_table, Param
 	  }
 	if (min_ext_size == 0)
 	  min_ext_size = 1;
-        //why set this to > 5? what about seed weight? or to > 0? seems strange to allow novel matches of length 1...
 	if( cga_list.back()->Multiplicity()  == M_i->Multiplicity() && cga_list.back()->Length() >= min_ext_size && cga_list.back()->AlignmentLength() >= 1 )
 	    {
 	      //	      cerr << "          successful extension!!" << endl;
@@ -2091,7 +2089,7 @@ int main( int argc, char* argv[] )
         po::options_description desc("Allowed options");
         desc.add_options()
 	                ("adjgc", po::value <bool>(&adjgc)->default_value(true), "adjust for GC content?")
-			("allow-redundant", po::value <bool>(&allow_redundant)->default_value(true), "allow redundant alignments?")
+			("allow-redundant", po::value <bool>(&allow_redundant)->default_value(false), "allow redundant alignments?")
 			("chain", po::value<bool>(&chain)->default_value(true), "chain seeds?")
 			("extend", po::value<bool>(&extend_chains)->default_value(true), "perform gapped extension on chains?")
 			("window", po::value<int>(&extension_window)->default_value(0), "size of window to use during gapped extension")
@@ -2100,7 +2098,7 @@ int main( int argc, char* argv[] )
 			("h", po::value<float>(&pGoHomo)->default_value(0.0005f), "Transition to Homologous")
 			("help", "get help message")
 			("highest", po::value<string>(&stat_file)->default_value("stats.highest"), "file containing highest scoring alignment for each multiplicity ")
-                        ("l", po::value <unsigned>(&min_repeat_length)->default_value(1), "minimum repeat length")
+                        ("len", po::value <unsigned>(&min_repeat_length)->default_value(1), "minimum repeat length")
                         ("min-ext", po::value <unsigned>(&min_ext_size)->default_value(0), "minimum extension size")
 			("large-repeats", po::value <bool>(&large_repeats)->default_value(false), "optimize for large repeats")
 			("load-sml", po::value <bool>(&load_sml)->default_value(false), "try to load existing SML file?")
@@ -2122,7 +2120,7 @@ int main( int argc, char* argv[] )
 	                ("force-split", po::value <bool>(&force_split)->default_value(false), "force split (repeats with same leftend)")
 			("tandem", po::value <bool>(&allow_tandem)->default_value(false), "allow tandem repeats?")
 			("two-hits", po::value<bool>(&two_hits)->default_value(false), "require two hits within w to trigger gapped extension?")
-	                ("repseek", po::value<bool>(&repseek)->default_value(true), "use repseek for 2-copy repeats?")
+	                ("repseek", po::value<bool>(&repseek)->default_value(false), "use repseek for 2-copy repeats?")
 	                ("tuiuiu", po::value<bool>(&tuiuiu)->default_value(false), "use tuiuiu filtering?")
 			("tuiuiu-w", po::value<int>(&tuiuiu_w)->default_value(100), "tuiuiu window size")
                         ("tuiuiu-e", po::value<int>(&tuiuiu_e)->default_value(12), "tuiuiu edit distance")
@@ -2146,7 +2144,7 @@ int main( int argc, char* argv[] )
               	        ("repseek-p", po::value<float>(&pval_lmin)->default_value(0), "repseek pval_lmin")
               	        ("repseek-L", po::value<float>(&selected_s)->default_value(0.0), "repseek smin")
                         ("repseek-P", po::value<float>(&pval_smin)->default_value(0), "repseek pval_smin")
-                	("repseek-r", po::value<string>(&repseek_output_file)->default_value(""), "repseek output file")
+                	("repseek-r", po::value<string>(&repseek_output_file)->default_value("repseek.out"), "repseek output file")
   	                ("repseek-T", po::value<int8_t>(&opt_TableR)->default_value(1), "print repeat table?")
   	                ("repseek-S", po::value<int8_t>(&opt_PrintSeeds)->default_value(0), "print seeds?")
                   	("repseek-s", po::value<string>(&repseek_seed_file)->default_value(""), "repseek seeds file")
@@ -2159,6 +2157,7 @@ int main( int argc, char* argv[] )
 
         if (argc <= 1)
 	{
+          cout << "usage: ./repeatoire --sequence=<yoursequence.fst> --xmfa=<xmfa output file> --z=<seed size>" << endl;
 	  cout << desc << "\n";
           exit(1);
 	}
@@ -2167,6 +2166,7 @@ int main( int argc, char* argv[] )
 
         if (vm.count("help")) 
 	{
+            cout << "usage: ./repeatoire --sequence=<yoursequence.fst> --xmfa=<xmfa output file> --z=<seed size>" << endl;
             cout << desc << "\n";
             return 1;
         }
@@ -2575,8 +2575,8 @@ int main( int argc, char* argv[] )
         if (min_spscore < 0 )
             min_spscore = 0;
 
-	//if( w == 0 )
-	//		w = seed_weight * 3;	// default value
+	if( w == 0 )
+			w = seed_weight * 3;	// default value
 	if( w < 0 )
 	{
 		w = 0;
@@ -2833,7 +2833,6 @@ int main( int argc, char* argv[] )
 		seed_out.open(seed_file.c_str());
 		std::cout << "Creating seed file.. " << std::endl;
 	}
-	cerr << "part 3, create a match position lookup table" << std::endl;
 	//
 	// part 3, create a match position lookup table
 	//
@@ -2868,7 +2867,6 @@ int main( int argc, char* argv[] )
 
         //MatchPositionLookupTable match_pos_lookup_table;
         //vector< pair< gnSeqI, MatchPositionEntry > > mplt_sort_list;
-        cerr << "create procrastination queue" << std::endl;
 	//
 	// part 4, create a procrastination queue
 	//
@@ -2877,7 +2875,6 @@ int main( int argc, char* argv[] )
 	//    	ProcrastinationQueue procrastination_queue( new_match_record_list );
     	ProcrastinationQueue procrastination_queue( match_record_list );
         
-        cerr << "Creating Novel Subset Match Record list" << std::endl;
 	//
 	// part 5, create an (empty) Novel Subset Match Record list
 	//
@@ -3438,6 +3435,16 @@ int main( int argc, char* argv[] )
 	    vector<string> alignment;
 	    vector< gnSequence* > seq_table( final[fI]->SeqCount(), seedml.seq_table[0] );
 	    mems::GetAlignment(*final[fI], seq_table, alignment);	// expects one seq_table entry per matching component
+	    if(0)
+	      {
+		for (size_t seqN =0; seqN < alignment.size(); seqN++)
+		  {
+		    cout << alignment.at(seqN) << endl;
+		  }
+
+		cout << endl;
+	      }
+
 	    //send temporary output format to file if requested
 	    int min = 1000000;
             int posI = 0;
