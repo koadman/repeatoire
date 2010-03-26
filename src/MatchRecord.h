@@ -59,7 +59,7 @@ public:
 	bool tandem;			/**< set to true if components of the match are chainable to each other (tandem repeats)*/
 	bool extended;			/**< set to false prior to extending this match */
 	bool is_novel_subset;
-        bool dont_extend;
+    bool dont_extend;
     
 	void clear()
 	{
@@ -163,14 +163,14 @@ public:
 	GappedMatchRecord() : 
 	  mems::GenericInterval< mems::AbstractGappedAlignment< MatchRecord > >()
 	{
-                //tjt: initialize spscore to 0
-                spscore = 0;  
-        }
+        //tjt: initialize spscore to 0
+        spscore = 0;  
+    }
 
 	GappedMatchRecord( UngappedMatchRecord& umr )
 	{
         //tjt: initialize spscore to 0
-                spscore = 0;
+        spscore = 0;
 		std::vector<UngappedMatchRecord*> asdf(1, &umr);
 		mems::GenericInterval< mems::AbstractGappedAlignment< MatchRecord > > iv( asdf.begin(), asdf.end() );
 		mems::GenericInterval< mems::AbstractGappedAlignment< MatchRecord > >::operator=( iv );
@@ -182,9 +182,9 @@ public:
 	 * converted to a gapped alignment
 	 */
 	void finalize(std::vector<genome::gnSequence *> seq_table);
-        //tjt: should this go somewhere else?
-        mems::score_t spscore;
-        // methods inherited from AbstractGappedAlignment
+    //tjt: should this go somewhere else?
+    mems::score_t spscore;
+// methods inherited from AbstractGappedAlignment
 public:
 	GappedMatchRecord* Clone() const { return new GappedMatchRecord( *this ); }
 	GappedMatchRecord* Copy() const;
@@ -235,124 +235,55 @@ void GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
 		mse_list[cI].second = &chained_component_maps[cI];
 	}
 	std::sort( mse_list.begin(), mse_list.end(), msec );
-	//	std::reverse( mse_list.begin(), mse_list.end());
 	// add lowest multiplicity matches first, progressively add higher mult. matches
 	std::vector< mems::AbstractMatch* > chain;
-
-	for( size_t cI = 0; cI < mse_list.size(); ++cI )
-	  {
-	    mems::MatchProjectionAdapter mpaa( mse_list[cI].first, *(mse_list[cI].second) );
-	    // clobber any region that overlaps with this mpaa                                                                                                                                                
-	    for( size_t seqI = 0; seqI < mpaa.SeqCount(); seqI++ )
-	      {
-		size_t csize = chain.size();
-		for( size_t mI = 0; mI < csize; mI++ )
-		  {
-		    mems::AbstractMatch* m = chain[mI];
-		    if( m == NULL )
-		      continue;
-		    if (m->LeftEnd(seqI) == 0 && m->Length( seqI ) == 0)
-		      continue; //should we throw error here?                                                                                                                                   
-		    if( m->RightEnd(seqI) < mpaa.LeftEnd(seqI) )
-		      continue;       // no overlap here!                                                                                                                                       
-		    if( m->LeftEnd(seqI) > mpaa.RightEnd(seqI) )
-		      continue;       // no overlap, woohoo!                                                                                                                                    
-		    if( m->LeftEnd(seqI) < mpaa.LeftEnd(seqI) &&
-			m->RightEnd(seqI) >= mpaa.LeftEnd(seqI) )
-		      {
-			// take the part of m to the left of mpaa and put it at the end of our chain                                                                                              
-			mems::AbstractMatch* m_left = m->Copy();
-			m_left->CropRight( m_left->RightEnd(seqI) - mpaa.LeftEnd(seqI) + 1, seqI );
-			m->CropLeft( m_left->Length(seqI), seqI );
-			chain.push_back(m_left);
-		      }
-		    // now m is guaranteed to have left-end >= mpaa                                                                                                                                   
-		    if( m->RightEnd(seqI) <= mpaa.RightEnd(seqI) )
-		      {
-			// m is completely contained inside mpaa, so get rid of it                                                                                                                
-			m->Free();
-			chain[mI] = NULL;
-			continue;
-		      }
-
-		    m->CropLeft( mpaa.RightEnd(seqI) - m->LeftEnd(seqI) + 1, seqI );
-		  }
-	      }
-	    // get rid of any null entries in the chain                                                                                                                                                       
-	    std::vector< mems::AbstractMatch* >::iterator end_iter = std::remove( chain.begin(), chain.end(), (AbstractMatch*)NULL );
-	    chain.erase( end_iter, chain.end() );
-	    chain.push_back( mpaa.Copy() );
-	    if( chain.back()->Orientation(0) == AbstractMatch::reverse )
-	      chain.back()->Invert();
-	  }
-
-        if(0)
-	{
 	for( size_t cI = 0; cI < mse_list.size(); ++cI )
 	{
 		mems::MatchProjectionAdapter mpaa( mse_list[cI].first, *(mse_list[cI].second) );
-                // clobber any region that overlaps with this mpaa
-                uint chits = 0;
-
-                vector <UngappedMatchRecord* > umr_list;
-                for( size_t seqI = 0; seqI < mpaa.SeqCount(); seqI++ )
+		// clobber any region that overlaps with this mpaa
+		for( size_t seqI = 0; seqI < mpaa.SeqCount(); seqI++ )
 		{
 			size_t csize = chain.size();
 			for( size_t mI = 0; mI < csize; mI++ )
 			{
 				mems::AbstractMatch* m = chain[mI];
-                                if( m == NULL )
-				  continue;
-                                for( size_t seqJ = 0; seqJ < m->SeqCount(); seqJ++)
-				{
-				  //size_t seqJ = seqI;
-                                //cout << seqI << " " << seqJ << endl;
-                                if( m->Length(seqJ) == 0)
-				        continue;
-                                if (m->LeftEnd(seqJ) == 0 && m->Length( seqJ ) == 0)
-                                        continue; //should we throw error here?
-				if( m->RightEnd(seqJ) < mpaa.LeftEnd(seqI) )
+				if( m == NULL )
+					continue;
+                if (m->LeftEnd(seqI) == 0 && m->Length( seqI ) == 0)
+                    continue; //should we throw error here?
+				if( m->RightEnd(seqI) < mpaa.LeftEnd(seqI) )
 					continue;	// no overlap here!
-				if( m->LeftEnd(seqJ) > mpaa.RightEnd(seqI) )
+				if( m->LeftEnd(seqI) > mpaa.RightEnd(seqI) )
 					continue;	// no overlap, woohoo!
-				if( m->LeftEnd(seqJ) < mpaa.LeftEnd(seqI) &&
-					m->RightEnd(seqJ) >= mpaa.LeftEnd(seqI) )
+				if( m->LeftEnd(seqI) < mpaa.LeftEnd(seqI) &&
+					m->RightEnd(seqI) >= mpaa.LeftEnd(seqI) )
 				{
-                                                               
-				        chits++;
-	                                // take the part of m to the left of mpaa and put it at the end of our chain
+	                // take the part of m to the left of mpaa and put it at the end of our chain
 					mems::AbstractMatch* m_left = m->Copy();
-					m_left->CropRight( m_left->RightEnd(seqJ) - mpaa.LeftEnd(seqI) + 1, seqJ );
-					m->CropLeft( m_left->Length(seqJ), seqJ );
-					chain.push_back(m_left);
-
-                               
+					m_left->CropRight( m_left->RightEnd(seqI) - mpaa.LeftEnd(seqI) + 1, seqI );
+					m->CropLeft( m_left->Length(seqI), seqI );
+                    chain.push_back(m_left);
 				}
-				/// now m is guaranteed to have left-end >= mpaa
-				if( m->RightEnd(seqJ) <= mpaa.RightEnd(seqI) )
+				// now m is guaranteed to have left-end >= mpaa
+				if( m->RightEnd(seqI) <= mpaa.RightEnd(seqI) )
 				{
 					// m is completely contained inside mpaa, so get rid of it
-				        m->Free();
-				        chain[mI] = NULL;
-					break;//continue;
+					m->Free();
+					chain[mI] = NULL;
+					continue;
 				}
-                                //else, there is still some piece to the right, trim overlap
-    			        else
-                                    m->CropLeft( mpaa.RightEnd(seqI) - m->LeftEnd(seqJ) + 1, seqJ );
-				}
+
+    			m->CropLeft( mpaa.RightEnd(seqI) - m->LeftEnd(seqI) + 1, seqI );		
 			}
-		
 		}
-                if (0 && umr_list.size() > 0)
-		  cout << "umr list size: " << umr_list.size() << " mpaa seqcount: " << mpaa.SeqCount() << endl;
 		// get rid of any null entries in the chain
 		std::vector< mems::AbstractMatch* >::iterator end_iter = std::remove( chain.begin(), chain.end(), (AbstractMatch*)NULL );
 		chain.erase( end_iter, chain.end() );
 		chain.push_back( mpaa.Copy() );
 		if( chain.back()->Orientation(0) == AbstractMatch::reverse )
-		    chain.back()->Invert();
+			chain.back()->Invert();
 	}
-	} 
+	
 	if( chain.size() == 0 )
 	{
 		*this = GappedMatchRecord();
@@ -380,6 +311,7 @@ void GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
 		align_success = mems::MuscleInterface::getMuscleInterface().Align( *cr,  m1 , m2,  seq_table );
 		if( align_success )
 		{
+            //cerr << "muscle alignment success!!" << endl;
 			iv_matches.push_back( cr );
 			// aed: just insert the resulting GappedAlignment objects into chain
 			chain.insert(chain.begin()+(i+1), cr);
@@ -406,8 +338,7 @@ void GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
 	SetMatches( chain );
 	//tjt: now chain should be empty
 	// don't keep a potentially huge tree of GappedMatchRecords.  instead, flatten to a single cga
-	//chain.clear();
-        mems::CompactGappedAlignment<> tmpcga(*this);
+	mems::CompactGappedAlignment<> tmpcga(*this);
 	chain.push_back(tmpcga.Copy());
 	SetMatches( chain );
 	//tjt: assign this to slot allocated & copied MatchRecord
