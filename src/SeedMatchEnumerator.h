@@ -16,10 +16,12 @@ class SeedMatchEnumerator : public mems::MatchFinder
 public:
 	virtual SeedMatchEnumerator* Clone() const;
 
-	void FindMatches( mems::MatchList& match_list, size_t min_multi = 2, size_t max_multi = 1000, bool direct_repeats_only = false)
+	void FindMatches( mems::MatchList& match_list, vector <int64> seqcoords, size_t min_multi = 2, size_t max_multi = 1000, bool direct_repeats_only = false)
 	{
         this->max_multiplicity = max_multi;
         this->min_multiplicity = min_multi;
+        this->seq_coords = seqcoords;
+	//        cerr << this->seq_coords.size();
         this->only_direct = direct_repeats_only;
 		for( size_t seqI = 0; seqI < match_list.seq_table.size(); ++seqI ){
 			if( !AddSequence( match_list.sml_table[ seqI ], match_list.seq_table[ seqI ] ) ){
@@ -45,6 +47,8 @@ private:
     size_t max_multiplicity;
     size_t min_multiplicity;
 	bool only_direct;
+	vector<int64> seq_coords;
+    
 };
 
 SeedMatchEnumerator* SeedMatchEnumerator::Clone() const{
@@ -79,8 +83,13 @@ boolean SeedMatchEnumerator::HashMatch(mems::IdmerList& match_list){
 	mems::IdmerList::iterator iter = match_list.begin();
     
 	uint32 repeatI = 0;
+        bool matchok = true;
+        //for seqcoord in seqcoords, check if start position is inside filtered region, if so discard match
 	for(; iter != match_list.end(); iter++)
+	{
+                
 		mhe.SetStart(repeatI++, iter->position + 1);
+	}
 
 	SetDirection( mhe );
 	bool found_reverse = false;
@@ -93,6 +102,28 @@ boolean SeedMatchEnumerator::HashMatch(mems::IdmerList& match_list){
 				component_map.push_back(seqI);
 			else
 				found_reverse = true;
+		  if (this->seq_coords.size() > 0)// and mhe.Orientation(seqI) == mems::AbstractMatch::forward)
+		{
+		  //      		     cout << "SeedMatch forward: " << mhe.LeftEnd(seqI) << " " << mhe.RigthEnd(seqI) << endl;
+                     matchok = false;
+                     for( int coordI = 0; coordI < this->seq_coords.size(); coordI+=2 )
+                     {
+		        if (mhe.RightEnd(seqI) >= this->seq_coords[coordI] && mhe.LeftEnd(seqI) <= this->seq_coords[coordI+1])  
+		        {
+		           matchok = true;
+                           break;
+		        }
+		     }
+                     if (!matchok)
+		        return false;
+		}
+                else if (this->seq_coords.size() > 0 and mhe.Orientation(seqI) == mems::AbstractMatch::reverse)
+		{
+
+		  cout << "SeedMatch reverse: " << mhe.LeftEnd(seqI) << " " << mhe.RightEnd(seqI) << endl;
+
+		}
+
 		}
 	}
 	mems::MatchProjectionAdapter mpaa(mhe.Copy(),  component_map);
