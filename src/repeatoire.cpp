@@ -8,6 +8,7 @@
 #include "libMems/Backbone.h"
 #include "libMems/ProgressiveAligner.h"
 #include "libMems/HomologyHMM/parameters.h"
+#include "libMems/FileSML.h"
 
 
 #include <iomanip>
@@ -102,6 +103,38 @@ public:
 	}
 };
 
+void  maskN(const gnSequence& seq, const string seqfile, vector<int64>& seq_coords)
+{
+  //vector< int64 > seq_coords;
+  // Filter NNNNNs
+  gnSequence masked_seq;
+  seq_coords.clear();
+  maskNNNNN( seq, masked_seq, seq_coords, 0 );
+        
+  // write a raw sequence to a tmp file stored in the first scratch path
+  string rawfile = "dm_rawseq";
+  gnRAWSource::Write( masked_seq, rawfile.c_str() );
+        
+  // write a sequence coordinate file
+  if( seq_coords.size() > 0 )
+    {
+      string coordfile = seqfile + ".coords";
+      ofstream coord_out( coordfile.c_str() );
+      if( !coord_out.is_open() )
+	{
+	  cerr << "Could not open " << coordfile << endl;
+	  throw "";
+	}
+                
+      for( int coordI = 0; coordI < seq_coords.size(); coordI+=2 ){
+	coord_out << seq_coords[ coordI ] << '\t' << seq_coords[ coordI + 1 ] << endl;
+      }
+      coord_out.close();
+    }
+  // load the sorted mer list
+  //((FileSML*)seq)->LoadFile( seqfile );
+  //return seq_coords;
+}
 
 bool scorecmp( GappedMatchRecord* a, GappedMatchRecord* b ) 
 {
@@ -1591,26 +1624,33 @@ int ExtendMatch(GappedMatchRecord*& M_i, vector< gnSequence* >& seq_table, Param
         int resultlen = result->AlignmentLength();
         vector<string> alignment;
         mems::GetAlignment(*cga_list.back(), seq_table, alignment);	// expects one seq_table entry per matching component
-	if(0)
-	  {
-        for (size_t seqN =0; seqN < alignment.size(); seqN++)
+        //contains N, discard for now
+        bool containsN = false;
+	if(1)
 	{
-        cout << alignment.at(seqN) << endl;
-        }
+            for (size_t seqN =0; seqN < alignment.size(); seqN++)
+	    {
+	        //cout << alignment.at(seqN) << endl;
+		int found=alignment.at(seqN).find("N");
+		if (found!=string::npos)
+		{
+		  containsN = true;
+                  break;
+		}
 
-        cout << endl;
-	  }
+            }
+
+	}
 	if (min_ext_size == 0)
 	  min_ext_size = 1;
-	if( cga_list.back()->Multiplicity()  == M_i->Multiplicity() && cga_list.back()->Length() >= min_ext_size && cga_list.back()->AlignmentLength() >= 1 )
+	if( !containsN && cga_list.back()->Multiplicity()  == M_i->Multiplicity() && cga_list.back()->Length() >= min_ext_size && cga_list.back()->AlignmentLength() >= 1 )
 	    {
-	      //	      cerr << "          successful extension!!" << endl;
 //          boundaries were improved, current match extended original match
 //          create a GappedMatchRecord for the gapped extension
 		    vector< AbstractMatch* > matches( 1, cga_list.back());
 //          GappedMatchRecord* M_e = M_i->Copy();
-            UngappedMatchRecord tmp(  cga_list.back()->Multiplicity(), cga_list.back()->AlignmentLength() );
-            MatchRecord* umr = tmp.Copy();
+                    UngappedMatchRecord tmp(  cga_list.back()->Multiplicity(), cga_list.back()->AlignmentLength() );
+                    MatchRecord* umr = tmp.Copy();
 		    GappedMatchRecord* M_e = dynamic_cast<GappedMatchRecord*>(umr); 
             
 		    if( M_e == NULL )
@@ -2121,14 +2161,13 @@ int main( int argc, char* argv[] )
 			("tandem", po::value <bool>(&allow_tandem)->default_value(false), "allow tandem repeats?")
 			("two-hits", po::value<bool>(&two_hits)->default_value(false), "require two hits within w to trigger gapped extension?")
 	                ("repseek", po::value<bool>(&repseek)->default_value(false), "use repseek for 2-copy repeats?")
-	                ("tuiuiu", po::value<bool>(&tuiuiu)->default_value(false), "use tuiuiu filtering?")
+	                ("tuiuiu-on", po::value<bool>(&tuiuiu)->default_value(true), "use tuiuiu filtering?")
 			("tuiuiu-w", po::value<int>(&tuiuiu_w)->default_value(100), "tuiuiu window size")
                         ("tuiuiu-e", po::value<int>(&tuiuiu_e)->default_value(12), "tuiuiu edit distance")
                         ("tuiuiu-r", po::value<int>(&tuiuiu_r)->default_value(4), "tuiuiu min multiplicity")
                         ("tuiuiu-k", po::value<int>(&tuiuiu_k)->default_value(6), "tuiuiu  kmer size")
                         ("tuiuiu-c", po::value<bool>(&tuiuiu_rev)->default_value(false), "tuiuiu complement strand")
                         ("tuiuiu-N", po::value<int>(&tuiuiu_writeN)->default_value(2), "tuiuiu output format")
-                        ("tuiuiu-b", po::value<int>(&tuiuiu_binsize)->default_value(0), "tuiuiu binsize")
                         ("u", po::value<float>(&pGoUnrelated)->default_value(0.000001f), "Transition to Unrelated")			
 			("unalign", po::value<bool>(&unalign)->default_value(true), "unalign non-homologous sequence?")
 			("ungapped-chaining",po::value<bool>(&ungapped_chaining)->default_value(false), "ungapped chaining?")
@@ -2421,9 +2460,17 @@ int main( int argc, char* argv[] )
         char *seq, *name;
         if (tuiuiu)
 	{
-          cerr << "Tuiuiu filtering engaged..."; 
+          cerr << "Tuiuiu filtering engaged..." << endl; 
           //dangerous global variable... put inside namespace plz
-	  extern int z;// = 0;
+	  extern int tuiuiu_z;
+          tuiuiu_z = 0;
+	  extern float w_bin_size;
+          w_bin_size = 0;
+	  extern char ACTGnumber[256];
+          extern int lastbin;
+	  lastbin=0;
+
+
           int pot2 = 1;
           index_str *k_factor_ind = (index_str *)malloc(sizeof(index_str));
 	  tuilist *result;
@@ -2443,10 +2490,11 @@ int main( int argc, char* argv[] )
           while (tuiuiu_binsize <= tuiuiu_e)
 	  {
 	    tuiuiu_binsize <<= 1;
-            z++;
+            tuiuiu_z++;
             
           }
-          cerr << "binsize" << endl;
+
+	  //          cerr << "binsize" << endl;
           int p =  (tuiuiu_w + 1) - tuiuiu_k * (tuiuiu_e +1);
           if (p < MINP*w/100)
 	  {
@@ -2460,6 +2508,8 @@ int main( int argc, char* argv[] )
             N = readsequenceAndReverse(input, &seq, &name);
        
           numParal = (N/tuiuiu_binsize)+2;
+          numParal *= 2;
+	  //          cout << "numParal:" << numParal << endl;
 	  goodWindows = (empty_block *)calloc(numParal, sizeof(empty_block));
 	  eb.notEmpty=0;
 	  eb.pass_num=1;
@@ -2468,9 +2518,10 @@ int main( int argc, char* argv[] )
 	    goodWindows[g]=eb;
           
           constructor(N, tuiuiu_k, seq, k_factor_ind);
-          cout << "FILTER" << endl;
+	  //          cout << "FILTER" << " tuiuiu_w " << tuiuiu_w << endl;
+           
           result = Filter(N, tuiuiu_k, p, tuiuiu_e, tuiuiu_r, tuiuiu_binsize, tuiuiu_w, k_factor_ind, seq, goodWindows, passNum);
-          cout << "DONE FILTER" << endl;
+	  //          cout << "DONE FILTER" << endl;
 	  result = InvertList(result);
 
 	  if(tuiuiu_rev) {
@@ -2534,6 +2585,7 @@ int main( int argc, char* argv[] )
 	    }
 
             WriteFilteredSeq(N, seq, result, output2, name, tuiuiu_writeN); 
+            
 	    fclose(output2);
      
      
@@ -2554,10 +2606,16 @@ int main( int argc, char* argv[] )
 	// part 1, load sequence and find seed matches using SML and a repeat class...
 	//
 	MatchList seedml;
-	seedml.seq_filename = vector< string >( 1, sequence_file );
+	seedml.seq_filename = vector< string >( 1, sequence_file);
 	seedml.sml_filename = vector< string >( 1, seedml.seq_filename[0] + ".sml");
 	//seedml.LoadSequences( &cout );
 	LoadSequences( seedml, &cout );
+        //gnSequence in_seq(*seedml.seq_filename[0]);
+	//        maskN(seedml.seq_filename[0],sequence_file);
+        vector< int64 > seq_coords;
+        maskN(*seedml.seq_table[0],sequence_file,seq_coords);
+	//LoadSequences( seedml, &cout );
+
 	if( seed_weight == 0 )
         {
 		seed_weight = (int)((double)getDefaultSeedWeight( seedml.seq_table[0]->length() ) * .9);
@@ -2585,7 +2643,7 @@ int main( int argc, char* argv[] )
 
 	cout << "Using seed weight: " << seed_weight << " and w: " << w << endl;
 	SeedMatchEnumerator sme;
-	sme.FindMatches( seedml, rmin, rmax, only_direct );
+	sme.FindMatches( seedml, seq_coords,rmin, rmax, only_direct);
 	
         // need single nuc & kmer frequency
 	string sequence = seedml.seq_table.at(0)->ToString();
@@ -3435,6 +3493,23 @@ int main( int argc, char* argv[] )
 	    vector<string> alignment;
 	    vector< gnSequence* > seq_table( final[fI]->SeqCount(), seedml.seq_table[0] );
 	    mems::GetAlignment(*final[fI], seq_table, alignment);	// expects one seq_table entry per matching component
+            bool containsN = false;
+	    if(1)
+	    {
+                for (size_t seqN =0; seqN < alignment.size(); seqN++)
+	        {
+	            //cout << alignment.at(seqN) << endl;
+		    int found=alignment.at(seqN).find("N");
+		    if (found!=string::npos)
+		    {
+		      containsN = true;
+                      break;
+		    }
+
+                }
+
+	    }
+            
 	    if(0)
 	      {
 		for (size_t seqN =0; seqN < alignment.size(); seqN++)
@@ -3455,7 +3530,7 @@ int main( int argc, char* argv[] )
 	        posI +=1;
 
 	    }
-            if (min >= min_repeat_length && min >= seed_size)
+            if (min >= min_repeat_length && min >= seed_size and !containsN)
             {
 		if(only_extended)
 		{
