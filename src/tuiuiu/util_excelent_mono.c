@@ -27,10 +27,10 @@
 #include "mono_and_multi_commons.h"
 #include <stdlib.h>
 #include <stdio.h>
-extern int z;
-extern int bin;
-extern int bin_size;
-extern float w;
+extern int tuiuiu_z;
+//extern int bin;
+//extern int bin_size;
+//extern float w;
 #define BEGIN(i, bin, z, N) (i + N - ((bin + 1) << z))
 //#define END(i, bin, z, w, N) (i + w + N - (bin << z))
 #define END(begin, w, bin_size) (begin + w + bin_size - 1)
@@ -157,6 +157,8 @@ int simplelisparallelogram (){
  */
 int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, empty_block goodWindows[], int curr_pass_num, int curr_parall_min, int curr_parall_max)
 {
+  //  printf("Nelems w: %d\n",w);
+  //  printf("Nelems tuiuiu_z: %d\n",tuiuiu_z);
   int result, n, intervalSize, beg_currBin, real_end_currBin, parall_ind, j, neb, begTemp;
 
    if (l == NULL)
@@ -164,19 +166,23 @@ int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, em
    else
    {
      result = Nelems(begin, end, l->right, i, w, bin_size, N, goodWindows, curr_pass_num, curr_parall_min, curr_parall_max);
-     
+
+     //     printf("Nelems2 w: %d\n",w);
+     //     printf("Nelems2 tuiuiu_z: %d\n",tuiuiu_z);
      //real_end_currBin = (*end);
 
-     beg_currBin = BEGIN(i, l->bin, z, N);
-
-     //real_end_currBin = END(i, l->bin, z, w, N);
+     beg_currBin = BEGIN(i, l->bin, tuiuiu_z, N);
+     //     printf("BEGIN tuiuiu_z: %d\n",tuiuiu_z);
+     //real_end_currBin = END(i, l->bin, tuiuiu_z, w, N);
      real_end_currBin = END(beg_currBin, w, bin_size);
+     //     printf("END tuiuiu_z: %d\n",tuiuiu_z);
      if(real_end_currBin > N)
        real_end_currBin = N;
 
      neb = 0;
 
-     //if (BEGIN(i, l->bin, z, N) >= (*end))
+     //if (BEGIN(i, l->bin, tuiuiu_z, N) >= (*end))
+     //     printf("beg_currBin\n");
      if(beg_currBin >= (*end))
        //bin is non-overlapping
        {
@@ -201,8 +207,8 @@ int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, em
 	     // [but it could be reset to empty block from some previous window in the
 	     // same \\ in the current pass]
 	     
-	     parall_ind = beg_currBin >> z;
-	     
+	     parall_ind = beg_currBin >> tuiuiu_z;
+	     //printf("parall_ind >>\n");
 	     if(((parall_ind == curr_parall_min) || (parall_ind == curr_parall_max)) 
 		||
 		((curr_pass_num==1) && 
@@ -213,7 +219,7 @@ int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, em
 	     
 	       result++;
 	       
-	       //*begin = BEGIN(i, l->bin, z, N);
+	       //*begin = BEGIN(i, l->bin, tuiuiu_z, N);
 	       //(*begin) = beg_currBin;
 	       //MOD
 	       (*begin) = beg_currBin + (w-erro);
@@ -225,8 +231,8 @@ int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, em
        {
 	 if(beg_currBin > (*begin))
 	   (*begin) = beg_currBin;
-	 
-	 //intervalSize = (END(i, l->bin, z, w, N)) - (*begin);
+	 //	 printf("intervalSize\n");
+	 //intervalSize = (END(i, l->bin, tuiuiu_z, w, N)) - (*begin);
 	 intervalSize = real_end_currBin - (*begin);
 	 
 	 if (intervalSize >= (w-erro)) // bin is non-overlapping 
@@ -237,8 +243,9 @@ int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, em
 	     
 	     for(j=1; j<=n; j++){
 	       
-	       parall_ind = begTemp >> z;
+	       parall_ind = begTemp >> tuiuiu_z;
 	       /* EMPTY BLOCK */
+	       //               printf("parall_ind\n");
 	       if(((parall_ind == curr_parall_min) || (parall_ind == curr_parall_max)) 
 		  ||
 		  ((curr_pass_num==1) && 
@@ -268,7 +275,7 @@ int Nelems(int *begin, int *end, itree *l, int i, int w, int bin_size, int N, em
        }
      
      //(*end) = real_end_currBin;
-     
+     //     printf ("return result\n");
      return result + Nelems(begin, end, l->left, i, w, bin_size, N, goodWindows, curr_pass_num, curr_parall_min, curr_parall_max);
    }
 }
@@ -371,7 +378,7 @@ void goodPar(itree *l, int nextBegin[], PLCS_type pLCS[], int begin, int end, in
        }
      else
        {   
-	 pLCS[l->bin] = plcs = p - LCS(begin, BEGIN(begin, l->bin, z, N), w, tam, k, seq, k_factor_ind);
+	 pLCS[l->bin] = plcs = p - LCS(begin, BEGIN(begin, l->bin, tuiuiu_z, N), w, tam, k, seq, k_factor_ind);
 	 if (plcs<=0) {
 	   AddTree(l->bin, l2);
 	   nextBegin[l->bin] = begin + 1 - plcs;
@@ -455,14 +462,15 @@ tuilist *Filter(int N, int k, int p, int e, int r, int bin_size,
       next = (next >> 2) + (pot4(k - 1) * ACTGnumber[(int)seq[i]]);
      
    } 
-
+   //   printf("finestra 0 \n");
    // if the first window has enougth 'friends' (zone respecting the necessary conditions)
    if (Nelems(&begin, &end, l, 0, w, bin_size, N, goodWindows, curr_pass_num, curr_parall_min, curr_parall_max) >= r)
    { 
       begin = 0; end = 0; l2 = NewTree(); 
       // the current par. is added in the tree of good parallelograms
+      //      printf("goodPar\n");
       goodPar(l, nextBegin, pLCS, 0, w, p, w, N, k, bin_size + e, seq, &l2, k_factor_ind);
-      
+
       if (Nelems(&begin, &end, l2, 0, w, bin_size, N, goodWindows, curr_pass_num, curr_parall_min, curr_parall_max) >= r)
 	ReportPgram(0, w, &result, goodWindows, curr_parall_min, curr_parall_max, curr_pass_num);
       /*EMPTY BLOCK + MULTI PASS*/
@@ -485,11 +493,15 @@ tuilist *Filter(int N, int k, int p, int e, int r, int bin_size,
    // the notEmpty field was modified during a previous pass with
    // respect to current pass
    else
+   {
      //for(curr_parall = curr_parall_min; curr_parall <=curr_parall_max; curr_parall++)
+     //       printf("empty block else %d\n",(curr_parall));
        if(((goodWindows[curr_parall]).pass_num<curr_pass_num) && ((goodWindows[curr_parall]).notEmpty==1)){
 	 (goodWindows[curr_parall]).notEmpty=0;
 	 (goodWindows[curr_parall]).pass_num=curr_pass_num;
-       }
+       }    
+
+   }
    /**/
    
    /* Adjusting the value for the window sliding */
@@ -500,7 +512,7 @@ tuilist *Filter(int N, int k, int p, int e, int r, int bin_size,
    {
      /* EMPTY BLOCK */
      //curr_parall is the index of the block containing the current window 
-     curr_parall = (i+1) >> z;
+     curr_parall = (i+1) >> tuiuiu_z;
      curr_parall_min = curr_parall;
      curr_parall_max = curr_parall;
      if((curr_parall>0) && ((i+1) <= ((curr_parall * bin_size) + e)))
