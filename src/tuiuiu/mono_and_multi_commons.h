@@ -25,6 +25,7 @@
 #include "emptyBlock.h"
 #include "util.h"
 #include "tuiglobals.h"
+//#include "tuiglobals.c"
 #include <stdlib.h>
 #include <stdio.h>
 #define MINP  8

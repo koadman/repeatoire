@@ -40,7 +40,7 @@ void ReportPgram(int begin, int end, tuilist **result,
 		 empty_block goodWindows[], int curr_parall_min, int curr_parall_max, int curr_pass_num);
 
 tuilist *Filter(int N, int k, int p, int e, int r, int bin_size, 
-             int w, index_str *k_factor_ind, char seq[], 
+             const int w, index_str *k_factor_ind, char seq[], 
 	     empty_block goodWindows[], int curr_pass_num);
 
 #endif

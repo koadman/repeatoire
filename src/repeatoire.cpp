@@ -2103,10 +2103,10 @@ int main( int argc, char* argv[] )
         bool tuiuiu_rev = false;
         int  tuiuiu_writeN = 0;
         int  tuiuiu_binsize = 0;
-        bool ungapped_extension = 0;
-        bool consensus_extension = 0;
-        bool exact_extension = 0;
-        bool ungapped_chaining = 0;
+        bool ungapped_extension = false;
+        bool consensus_extension = false;
+        bool exact_extension = false;
+        bool ungapped_chaining = false;
 	po::variables_map vm;
         mod_matrix[0][0] = 93;
         mod_matrix[1][1] = 184;
@@ -2161,7 +2161,7 @@ int main( int argc, char* argv[] )
 			("tandem", po::value <bool>(&allow_tandem)->default_value(false), "allow tandem repeats?")
 			("two-hits", po::value<bool>(&two_hits)->default_value(false), "require two hits within w to trigger gapped extension?")
 	                ("repseek", po::value<bool>(&repseek)->default_value(false), "use repseek for 2-copy repeats?")
-	                ("tuiuiu-on", po::value<bool>(&tuiuiu)->default_value(true), "use tuiuiu filtering?")
+	                ("tuiuiu-on", po::value<bool>(&tuiuiu)->default_value(false), "use tuiuiu filtering?")
 			("tuiuiu-w", po::value<int>(&tuiuiu_w)->default_value(100), "tuiuiu window size")
                         ("tuiuiu-e", po::value<int>(&tuiuiu_e)->default_value(12), "tuiuiu edit distance")
                         ("tuiuiu-r", po::value<int>(&tuiuiu_r)->default_value(4), "tuiuiu min multiplicity")
