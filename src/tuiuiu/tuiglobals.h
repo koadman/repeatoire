@@ -2,7 +2,7 @@
 #define TUI_GLOBALS_H
 
 extern float w_bin_size;
-extern int z; 
+extern int tuiuiu_z; 
 extern char ACTGnumber[256];
 extern int lastbin;
 
