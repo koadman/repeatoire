@@ -31,8 +31,8 @@
 inline void CountBins(int d, int e, int p, int bins[], itree **l)
 {
   int bin, binstop;
-  extern int z;
-   for ( bin = d >> z, binstop = (d + e) >> z; bin <= binstop; bin ++ ){
+  extern int tuiuiu_z;
+   for ( bin = d >> tuiuiu_z, binstop = (d + e) >> tuiuiu_z; bin <= binstop; bin ++ ){
      
      if (bin > lastbin) {
      
@@ -50,8 +50,8 @@ inline void CountBins(int d, int e, int p, int bins[], itree **l)
 inline void UncountBins(int d, int e, int p, int bins[], itree **l)
 {
    int bin, binstop;
-   extern int z;
-   for ( bin = d >> z, binstop = (d + e) >> z; bin <= binstop; bin ++ ){
+   extern int tuiuiu_z;
+   for ( bin = d >> tuiuiu_z, binstop = (d + e) >> tuiuiu_z; bin <= binstop; bin ++ ){
 
      if (bin > lastbin) {
        bins[bin]--;
