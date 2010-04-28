@@ -2021,7 +2021,7 @@ int main( int argc, char* argv[] )
 
         float merge_repeats=0.90;        /* merge repeats when x% of both copies is located at the same spot */
 
-        int8_t opt_TableR=0;             /* do we output TableR - 0 = no, default */
+        int8_t opt_TableR=1;             /* do we output TableR - 0 = no, default */
         int8_t opt_PrintSeeds=0;         /* do we output Seeds - 0 = no, default */
 
         int8_t opt_overlap=0;            /* if 0, repeats cannot have their two copies overlapping */
@@ -2066,8 +2066,8 @@ int main( int argc, char* argv[] )
         score_t min_spscore = 0;
         uint rmin = 0;
         uint rmax = 0;
-        uint min_ext_size = 1;
-        uint split_size = 1;
+        uint min_ext_size = 3;
+        uint split_size = 0;
 	string outputfile = "";
 	string output2file = "";
 	string xmfa_file = "";
@@ -2077,7 +2077,7 @@ int main( int argc, char* argv[] )
 	bool only_direct = false;
 	bool load_sml = false;
 	bool small_repeats = false;
-	bool large_repeats = false;
+	bool large_repeats = true;
         bool allow_tandem = false;
         bool allow_redundant = false;
 	bool find_novel_subsets = false;
@@ -2089,10 +2089,10 @@ int main( int argc, char* argv[] )
 	bool two_hits = false;
 	bool unalign = true;
 	float percent_id = 0.0;
-        float pGoHomo = 0.004f;
-        float pGoUnrelated = 0.004f;
+        float pGoHomo = 0.0005f;
+        float pGoUnrelated = 0.000001f;
         bool only_extended = false;
-        bool adjgc = false;
+        bool adjgc = true;
         bool verbose = false;
         bool tuiuiu = false;
         bool repseek = false;
@@ -2126,87 +2126,118 @@ int main( int argc, char* argv[] )
         mod_matrix[2][3] = -376;
 	try {
 
-        po::options_description desc("Allowed options");
-        desc.add_options()
-	                ("adjgc", po::value <bool>(&adjgc)->default_value(true), "adjust for GC content?")
+        po::options_description desc_main("Main options");
+        desc_main.add_options()
+
+			("expert","see hidden advanced options")
+			("extend", po::value<bool>(&extend_chains)->default_value(true), "perform gapped extension?")
+			("help", "get help message")
+			("large-repeats", po::value <bool>(&large_repeats)->default_value(true), "optimize for large repeats?")
+                        ("minlength", po::value <unsigned>(&min_repeat_length)->default_value(50), "minimum repeat length")
+			("maxmulti",  po::value<unsigned>(&rmax)->default_value(500), "maximum repeat multiplicity (max copy number)")
+			("minmulti" , po::value<unsigned>(&rmin)->default_value(2), "minimum repeat multiplicity (min copy number)")
+			("onlydirect",po::value<bool>(&only_direct)->default_value(false), "only process seed matches on same strand?")
+			("output", po::value<string>(&outputfile)->default_value("reps.out"), "output file (positions)")
+                        ("sequence", po::value<string>(&sequence_file), "FastA sequence input file")
+			("solid", po::value<bool>(&solid_seed)->default_value(0), "use solid/exact seeds?")
+			("xmfa", po::value<string>(&xmfa_file)->default_value(""), "XMFA format output (alignments)")
+			("z", po::value <unsigned>(&seed_weight)->default_value(17), "seed weight")
+
+	  ;
+        po::options_description desc_extra("Expert options");
+        desc_extra.add_options()
+	  	        ("adjgc", po::value <bool>(&adjgc)->default_value(true), "adjust for GC content?")
 			("allow-redundant", po::value <bool>(&allow_redundant)->default_value(false), "allow redundant alignments?")
 			("chain", po::value<bool>(&chain)->default_value(true), "chain seeds?")
-			("extend", po::value<bool>(&extend_chains)->default_value(true), "perform gapped extension on chains?")
-			("window", po::value<int>(&extension_window)->default_value(0), "size of window to use during gapped extension")
+	  		("consensus-extension",po::value<bool>(&consensus_extension)->default_value(false), "perform ungapped extension using consensus?")
+			("exact-extension",po::value<bool>(&exact_extension)->default_value(false), "perform exact ungapped extension?")
+	  	        ("force-split", po::value <bool>(&force_split)->default_value(false), "force split (repeats with same leftend)")
 			("gapopen",po::value <int>(&gap_open)->default_value(0), "gap open penalty")
 			("gapextend",po::value <int>(&gap_extend)->default_value(0), "gap extension penalty")
-			("h", po::value<float>(&pGoHomo)->default_value(0.0005f), "Transition to Homologous")
-			("help", "get help message")
-			("highest", po::value<string>(&stat_file)->default_value("stats.highest"), "file containing highest scoring alignment for each multiplicity ")
-                        ("len", po::value <unsigned>(&min_repeat_length)->default_value(1), "minimum repeat length")
-                        ("min-ext", po::value <unsigned>(&min_ext_size)->default_value(0), "minimum extension size")
-			("large-repeats", po::value <bool>(&large_repeats)->default_value(false), "optimize for large repeats")
-			("load-sml", po::value <bool>(&load_sml)->default_value(false), "try to load existing SML file?")
-			("onlydirect",po::value<bool>(&only_direct)->default_value(false), "only process seed matches on same strand?")
-			("onlyextended",po::value<bool>(&only_extended)->default_value(false), "only output extended matches?")
-			("output", po::value<string>(&outputfile)->default_value(""), "output file ")
-			("percentid", po::value<float>(&percent_id)->default_value(0.9), "repeat family % id")
-			("novel-subsets", po::value<bool>(&find_novel_subsets)->default_value(false), "find novel subset matches?")
+			("gapwidth", po::value<int>(&w)->default_value(0), "max gap width between two seeds in a chain ")
+
+	  		("hgo", po::value<float>(&pGoHomo)->default_value(0.0005f), "Transition to Homologous")
+			("highest", po::value<string>(&stat_file)->default_value("stats.highest"), "file with highest scoring aln for each multi ")
+
+
+	  		("load-sml", po::value <bool>(&load_sml)->default_value(false), "try to load existing SML file?")
+	                ("min-ext", po::value <unsigned>(&min_ext_size)->default_value(0), "minimum extension size")
                         ("novel-matches", po::value<bool>(&use_novel_matches)->default_value(false), "use novel matches found during gapped extension?")
-			("rmax",  po::value<unsigned>(&rmax)->default_value(500), "maximum repeat multiplicity (max copy number)")
-			("rmin" , po::value<unsigned>(&rmin)->default_value(2), "minimum repeat multiplicity (min copy number)")
-			("seeds", po::value<string>(&seed_file), "seed output file")
-                        ("sequence", po::value<string>(&sequence_file), "FastA sequence file")
-			("small-repeats", po::value <bool>(&small_repeats)->default_value(false), "optimize for small repeats")
-			("score-out", po::value<string>(&output2file)->default_value(""), "output with corresponding score and alignment info ")
-			("solid", po::value<bool>(&solid_seed)->default_value(0), "use solid/exact seeds?")
+	                ("novel-subsets", po::value<bool>(&find_novel_subsets)->default_value(false), "find novel subset matches?")
+	                
+			("onlyextended",po::value<bool>(&only_extended)->default_value(false), "only output extended matches?")
+
+			("percentid", po::value<float>(&percent_id)->default_value(0.9), "repeat family % id")
+	  			("score-out", po::value<string>(&output2file)->default_value(""), "output with corresponding score and alignment info ")	
+	  			("seeds", po::value<string>(&seed_file), "seed output file")
+
+	  			("small-repeats", po::value <bool>(&small_repeats)->default_value(false), "optimize for small repeats")
+	 	
 			("sp", po::value <score_t>(&min_spscore)->default_value(0), "minimum Sum-of-Pairs alignment score")
-	                ("split-size", po::value <unsigned>(&split_size)->default_value(0), "break n-copy repeats into subfamilies of multiplicity <split-size>")
-	                ("force-split", po::value <bool>(&force_split)->default_value(false), "force split (repeats with same leftend)")
-			("tandem", po::value <bool>(&allow_tandem)->default_value(false), "allow tandem repeats?")
-			("two-hits", po::value<bool>(&two_hits)->default_value(false), "require two hits within w to trigger gapped extension?")
-	                ("repseek", po::value<bool>(&repseek)->default_value(false), "use repseek for 2-copy repeats?")
+	  	                ("split-size", po::value <unsigned>(&split_size)->default_value(0), "break n-copy repeats into subfamilies of multiplicity <split-size>")
+
+	  			("tandem", po::value <bool>(&allow_tandem)->default_value(false), "allow tandem repeats?")
+	  			("two-hits", po::value<bool>(&two_hits)->default_value(false), "require two hits for gapped extension?")
+	                          ("ugo", po::value<float>(&pGoUnrelated)->default_value(0.000001f), "Transition to Unrelated")			
+	  			("unalign", po::value<bool>(&unalign)->default_value(true), "unalign non-homologous sequence?")
+			("ungapped-chaining",po::value<bool>(&ungapped_chaining)->default_value(false), "ungapped chaining?")
+	  			("ungapped-extension",po::value<bool>(&ungapped_extension)->default_value(false), "ungapped extension?")
+                        ("verbose", po::value<bool>(&verbose)->default_value(false), "enable long-winded output?")
+
+	  			("window", po::value<int>(&extension_window)->default_value(0), "size of window to use during gapped extension")
+                        ("xml", po::value<string>(&xml_file)->default_value(""), "XML format output")
+
+
+
+	  ;
+        po::options_description desc_tui("TUIUIU options");
+        desc_tui.add_options()
 	                ("tuiuiu-on", po::value<bool>(&tuiuiu)->default_value(false), "use tuiuiu filtering?")
 			("tuiuiu-w", po::value<int>(&tuiuiu_w)->default_value(100), "tuiuiu window size")
                         ("tuiuiu-e", po::value<int>(&tuiuiu_e)->default_value(12), "tuiuiu edit distance")
                         ("tuiuiu-r", po::value<int>(&tuiuiu_r)->default_value(4), "tuiuiu min multiplicity")
                         ("tuiuiu-k", po::value<int>(&tuiuiu_k)->default_value(6), "tuiuiu  kmer size")
-                        ("tuiuiu-c", po::value<bool>(&tuiuiu_rev)->default_value(false), "tuiuiu complement strand")
+	  //                        ("tuiuiu-c", po::value<bool>(&tuiuiu_rev)->default_value(false), "tuiuiu complement strand")
                         ("tuiuiu-N", po::value<int>(&tuiuiu_writeN)->default_value(2), "tuiuiu output format")
-                        ("u", po::value<float>(&pGoUnrelated)->default_value(0.000001f), "Transition to Unrelated")			
-			("unalign", po::value<bool>(&unalign)->default_value(true), "unalign non-homologous sequence?")
-			("ungapped-chaining",po::value<bool>(&ungapped_chaining)->default_value(false), "ungapped chaining?")
-			("ungapped-extension",po::value<bool>(&ungapped_extension)->default_value(false), "ungapped extension?")
-			("consensus-extension",po::value<bool>(&consensus_extension)->default_value(false), "perform ungapped extension using consensus?")
-			("exact-extension",po::value<bool>(&exact_extension)->default_value(false), "perform exact ungapped extension?")
-                        ("verbose", po::value<bool>(&verbose)->default_value(false), "enable long-winded output?")
-			("w", po::value<int>(&w)->default_value(0), "max gap width ")
-			("xmfa", po::value<string>(&xmfa_file)->default_value(""), "XMFA format output")
-                        ("xml", po::value<string>(&xml_file)->default_value(""), "XML format output")
-			("z", po::value <unsigned>(&seed_weight)->default_value(0), "seed weight")
+	  ;
+        po::options_description desc_rep("Repseek options");
+        desc_rep.add_options()
+	                ("repseek-on", po::value<bool>(&repseek)->default_value(false), "use repseek for 2-copy repeats?")
                         ("repseek-l", po::value<int>(&selected_l)->default_value(1), "repseek lmin ")
               	        ("repseek-p", po::value<float>(&pval_lmin)->default_value(0), "repseek pval_lmin")
               	        ("repseek-L", po::value<float>(&selected_s)->default_value(0.0), "repseek smin")
                         ("repseek-P", po::value<float>(&pval_smin)->default_value(0), "repseek pval_smin")
                 	("repseek-r", po::value<string>(&repseek_output_file)->default_value("repseek.out"), "repseek output file")
-  	                ("repseek-T", po::value<int8_t>(&opt_TableR)->default_value(1), "print repeat table?")
-  	                ("repseek-S", po::value<int8_t>(&opt_PrintSeeds)->default_value(0), "print seeds?")
-                  	("repseek-s", po::value<string>(&repseek_seed_file)->default_value(""), "repseek seeds file")
-  	                ("repseek-d", po::value<int8_t>(&opt_dir)->default_value(1), "output direct repeats?")
-  	                ("repseek-i", po::value<int8_t>(&opt_inv)->default_value(1), "output inverted repeats?")
-  	                ("repseek-B", po::value<int8_t>(&opt_MergeSeeds)->default_value(0), "merge seeds?")
-  	                ("repseek-R", po::value<float>(&merge_repeats)->default_value(0.9), "merge repeats value")
+  	  //              ("repseek-T", po::value<int8_t>(&opt_TableR)->default_value(1), "print repeat table?")
+	  //  	                ("repseek-S", po::value<int8_t>(&opt_PrintSeeds)->default_value(0), "print seeds?")
+	  //                  	("repseek-s", po::value<string>(&repseek_seed_file)->default_value(""), "repseek seeds file")
+	  //  	                ("repseek-d", po::value<int8_t>(&opt_dir)->default_value(1), "output direct repeats?")
+	  //  	                ("repseek-i", po::value<int8_t>(&opt_inv)->default_value(1), "output inverted repeats?")
+	  //  	                ("repseek-B", po::value<int8_t>(&opt_MergeSeeds)->default_value(0), "merge seeds?")
+	  //  	                ("repseek-R", po::value<float>(&merge_repeats)->default_value(0.9), "merge repeats value")
 	  ;
 
-
+	po::options_description cmdline_options;
+	cmdline_options.add(desc_main).add(desc_tui).add(desc_rep);
         if (argc <= 1)
 	{
-          cout << "usage: ./repeatoire --sequence=<yoursequence.fst> --xmfa=<xmfa output file> --z=<seed size>" << endl;
-	  cout << desc << "\n";
+          cout << "usage: ./repeatoire --sequence=<fasta sequence> --out=<output file> --z=<seed size>" << endl;
+	  cout << cmdline_options << "\n";
           exit(1);
 	}
-        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
         po::notify(vm);    
 
         if (vm.count("help")) 
 	{
-            cout << "usage: ./repeatoire --sequence=<yoursequence.fst> --xmfa=<xmfa output file> --z=<seed size>" << endl;
-            cout << desc << "\n";
+              cout << "usage: ./repeatoire --sequence=<fasta sequence> --out=<output file> --z=<seed size>" << endl;
+            cout << desc_main << "\n";
+            return 1;
+        }
+
+        if (vm.count("expert")) 
+	{
+            cout << desc_extra << "\n";
             return 1;
         }
 
@@ -2353,6 +2384,8 @@ int main( int argc, char* argv[] )
 	  */
 
 	  //if (1)
+          opt_dir = 1;
+          opt_inv = !only_direct;
 	  AllSeeds =  KMRK_get_seeds(&repseek_sequence, size, lmin, opt_dir, opt_inv, 0, mask);
 	  fprintf(stderr, "%d direct & %d inverted seeds\n", AllSeeds->nDirSeeds, AllSeeds->nInvSeeds);
 
@@ -2502,6 +2535,7 @@ int main( int argc, char* argv[] )
 	  }
 	  if (input == NULL)
 	    cerr << "Cannot read tuiuiu input sequence!" << endl;
+          tuiuiu_rev = !only_direct;
           if (!tuiuiu_rev)
 	    N = readsequence(input, &seq, &name);
           else
@@ -2643,6 +2677,7 @@ int main( int argc, char* argv[] )
 
 	cout << "Using seed weight: " << seed_weight << " and w: " << w << endl;
 	SeedMatchEnumerator sme;
+        
 	sme.FindMatches( seedml, seq_coords,rmin, rmax, only_direct);
 	
         // need single nuc & kmer frequency
