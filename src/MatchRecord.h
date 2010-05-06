@@ -181,7 +181,7 @@ public:
 	 * Call to indicate that all matches have been placed in the chained_matches list and can be 
 	 * converted to a gapped alignment
 	 */
-	void finalize(std::vector<genome::gnSequence *> seq_table);
+	int finalize(std::vector<genome::gnSequence *> seq_table);
     //tjt: should this go somewhere else?
     mems::score_t spscore;
 // methods inherited from AbstractGappedAlignment
@@ -223,7 +223,7 @@ public:
 	bool operator()( const T* a ){ return a == NULL; }
 };
 
-void GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
+int GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
 {
 	std::vector< mems::AbstractMatch* > iv_matches;
 	MatchSortEntryCompare msec;
@@ -287,7 +287,7 @@ void GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
 	if( chain.size() == 0 )
 	{
 		*this = GappedMatchRecord();
-		return;
+		return 1;
 	}
 	mems::MatchStartComparator< mems::AbstractMatch > asc(0);
 	std::sort( chain.begin(), chain.end(), asc );
@@ -326,21 +326,44 @@ void GappedMatchRecord::finalize( std::vector<genome::gnSequence *> seq_table)
 	
 	}catch( genome::gnException& gne ){
 		std::cerr << gne << std::endl;
+                return 1;
 	}catch(std::exception& e){
 		std::cerr << e.what() << std::endl;
 		std::cerr << chain.size() << std::endl;
+                return 1;
 	}catch(...){
 		std::cerr << "matrix exception?\n";
+                return 1;
 	}
 	}
 
 	MatchRecord* mr = this->Copy();
-	SetMatches( chain );
+        try
+	{
+	    SetMatches( chain );
+	}catch( genome::gnException& gne ){
+		std::cerr << gne << std::endl;
+	        return 1;
+	}catch(std::exception& e){
+		std::cerr << e.what() << std::endl;
+		std::cerr << chain.size() << std::endl;
+                return 1;
+	 }
 	//tjt: now chain should be empty
 	// don't keep a potentially huge tree of GappedMatchRecords.  instead, flatten to a single cga
 	mems::CompactGappedAlignment<> tmpcga(*this);
 	chain.push_back(tmpcga.Copy());
-	SetMatches( chain );
+        try
+	{
+	    SetMatches( chain );
+	}catch( genome::gnException& gne ){
+		std::cerr << gne << std::endl;
+	        return 1;
+	}catch(std::exception& e){
+		std::cerr << e.what() << std::endl;
+		std::cerr << chain.size() << std::endl;
+                return 1;
+	 }
 	//tjt: assign this to slot allocated & copied MatchRecord
 	MatchRecord::operator=(*mr);
 	mr->Free();
