@@ -2135,7 +2135,7 @@ int main( int argc, char* argv[] )
         po::options_description desc_main("Main options");
         desc_main.add_options()
 
-			("expert","see hidden advanced options")
+	  //			("expert","see hidden advanced options")
 			("extend", po::value<bool>(&extend_chains)->default_value(true), "perform gapped extension?")
 			("help", "get help message")
 			("large-repeats", po::value <bool>(&large_repeats)->default_value(true), "optimize for large repeats?")
@@ -2227,7 +2227,7 @@ int main( int argc, char* argv[] )
 	  ;
 
 	po::options_description cmdline_options;
-	cmdline_options.add(desc_main).add(desc_tui).add(desc_rep);//.add(desc_extra);
+	cmdline_options.add(desc_main).add(desc_tui).add(desc_rep).add(desc_extra);
         if (argc <= 1)
 	{
           cout << "usage: ./repeatoire --sequence=<fasta sequence> --out=<output file> --z=<seed size>" << endl;
@@ -2237,7 +2237,7 @@ int main( int argc, char* argv[] )
 	//        cmdline_options.add(desc_extra);
         po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
         po::notify(vm);    
-
+         
         if (vm.count("help")) 
 	{
               cout << "usage: ./repeatoire --sequence=<fasta sequence> --out=<output file> --z=<seed size>" << endl;
