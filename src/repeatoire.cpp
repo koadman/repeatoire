@@ -1582,16 +1582,16 @@ int ExtendMatch(GappedMatchRecord*& M_i, vector< gnSequence* >& seq_table, Param
         int mlist_size = mlist[0]->AlignmentLength();
 	iv.SetMatchesTemp(mlist);
         vector<string> alignment_test;
-	mems::GetAlignment(iv, seq_table, alignment_test);	// expects one seq_table entry per matching component
-	if (alignment_test.size() < M_i->SeqCount() )
-	{
-	  //std::cerr << alignment_test.size() << " " << M_i->SeqCount() << " " << alignment_test.at(0) << " " << multi << " " << direction << std::endl;
-            return FAILED;
-        }
+			mems::GetAlignment(iv, seq_table, alignment_test);	// expects one seq_table entry per matching component
+	               if (alignment_test.size() < M_i->SeqCount() )
+			{
+			    std::cerr << alignment_test.size() << " " << M_i->SeqCount() << " " << alignment_test.at(0) << " " << multi << " " << direction << std::endl;
+		            return FAILED;
+		        }
         CompactGappedAlignment<> tmp_cga;
 	CompactGappedAlignment<>* cga = tmp_cga.Copy();
         new (cga)CompactGappedAlignment<>(iv);
-        //cga->SetMatches(mlist);
+	//        cga->SetMatches(mlist);
 	vector< CompactGappedAlignment<>* > cga_list;
 	CompactGappedAlignment<>* result;
 	backbone_list_t bb_list;
@@ -1622,16 +1622,15 @@ int ExtendMatch(GappedMatchRecord*& M_i, vector< gnSequence* >& seq_table, Param
 	    result->copyRange( *(cga_list.back()), 0, extension_bb->AlignmentLength() );
         int cgalen = cga_list.back()->AlignmentLength();
         int resultlen = result->AlignmentLength();
-        vector<string> alignment;
-        mems::GetAlignment(*cga_list.back(), seq_table, alignment);	// expects one seq_table entry per matching component
-        //contains N, discard for now
+
         bool containsN = false;
 	if(1)
 	{
-            for (size_t seqN =0; seqN < alignment.size(); seqN++)
+        //contains N, discard for now
+            for (size_t seqN =0; seqN < alignment_test.size(); seqN++)
 	    {
-	        //cout << alignment.at(seqN) << endl;
-		int found=alignment.at(seqN).find("N");
+	      //cout << alignment_test.at(seqN) << endl;
+		int found=alignment_test.at(seqN).find("N");
 		if (found!=string::npos)
 		{
 		  containsN = true;
@@ -1867,7 +1866,13 @@ void processNovelSubsetMatches( GappedMatchRecord*& M_i, vector< NeighborhoodGro
 		M_n->chained_matches.push_back(M_j);
 		M_n->chained_component_maps.push_back(new_to_j_map);
 		//tjt: need to send finalize seq_table for muscle alignment
-		M_n->finalize(seq_table);	// make this one a legitimate match...
+		if (M_n->finalize(seq_table) == 1)
+		  {
+		    //finalize failed, skip it
+      		    M_n->chained_matches.clear();
+		    M_n->chained_component_maps.clear();
+                    continue;
+		  }
 		//		M_n->finalize(seq_table);	// make this one a legitimate match...
 		M_n->chained_matches.clear();
 		M_n->chained_component_maps.clear();
@@ -2063,6 +2068,7 @@ int main( int argc, char* argv[] )
 	int gap_extend = 0;
 	uint seed_weight = 0;
         uint min_repeat_length = 0;
+        uint min_chain_length = 0;
         score_t min_spscore = 0;
         uint rmin = 0;
         uint rmax = 0;
@@ -2133,7 +2139,7 @@ int main( int argc, char* argv[] )
 			("extend", po::value<bool>(&extend_chains)->default_value(true), "perform gapped extension?")
 			("help", "get help message")
 			("large-repeats", po::value <bool>(&large_repeats)->default_value(true), "optimize for large repeats?")
-                        ("minlength", po::value <unsigned>(&min_repeat_length)->default_value(50), "minimum repeat length")
+                        ("minreplen", po::value <unsigned>(&min_repeat_length)->default_value(100), "minimum final repeat length")
 			("maxmulti",  po::value<unsigned>(&rmax)->default_value(500), "maximum repeat multiplicity (max copy number)")
 			("minmulti" , po::value<unsigned>(&rmin)->default_value(2), "minimum repeat multiplicity (min copy number)")
 			("onlydirect",po::value<bool>(&only_direct)->default_value(false), "only process seed matches on same strand?")
@@ -2156,12 +2162,15 @@ int main( int argc, char* argv[] )
 			("gapextend",po::value <int>(&gap_extend)->default_value(0), "gap extension penalty")
 			("gapwidth", po::value<int>(&w)->default_value(0), "max gap width between two seeds in a chain ")
 
-	  		("hgo", po::value<float>(&pGoHomo)->default_value(0.0005f), "Transition to Homologous")
+	  		("hgo", po::value<float>(&pGoHomo)->default_value(0.000005f), "Transition to Homologous")
 			("highest", po::value<string>(&stat_file)->default_value("stats.highest"), "file with highest scoring aln for each multi ")
 
 
 	  		("load-sml", po::value <bool>(&load_sml)->default_value(false), "try to load existing SML file?")
-	                ("min-ext", po::value <unsigned>(&min_ext_size)->default_value(0), "minimum extension size")
+	                ("min-ext", po::value <unsigned>(&min_ext_size)->default_value(3), "minimum extension size")
+
+                        ("minchainlen", po::value <unsigned>(&min_chain_length)->default_value(50), "minimum chain length to trigger gapped extension")
+
                         ("novel-matches", po::value<bool>(&use_novel_matches)->default_value(false), "use novel matches found during gapped extension?")
 	                ("novel-subsets", po::value<bool>(&find_novel_subsets)->default_value(false), "find novel subset matches?")
 	                
@@ -2178,7 +2187,7 @@ int main( int argc, char* argv[] )
 
 	  			("tandem", po::value <bool>(&allow_tandem)->default_value(false), "allow tandem repeats?")
 	  			("two-hits", po::value<bool>(&two_hits)->default_value(false), "require two hits for gapped extension?")
-	                          ("ugo", po::value<float>(&pGoUnrelated)->default_value(0.000001f), "Transition to Unrelated")			
+	                          ("ugo", po::value<float>(&pGoUnrelated)->default_value(0.01f), "Transition to Unrelated")			
 	  			("unalign", po::value<bool>(&unalign)->default_value(true), "unalign non-homologous sequence?")
 			("ungapped-chaining",po::value<bool>(&ungapped_chaining)->default_value(false), "ungapped chaining?")
 	  			("ungapped-extension",po::value<bool>(&ungapped_extension)->default_value(false), "ungapped extension?")
@@ -2218,13 +2227,14 @@ int main( int argc, char* argv[] )
 	  ;
 
 	po::options_description cmdline_options;
-	cmdline_options.add(desc_main).add(desc_tui).add(desc_rep);
+	cmdline_options.add(desc_main).add(desc_tui).add(desc_rep);//.add(desc_extra);
         if (argc <= 1)
 	{
           cout << "usage: ./repeatoire --sequence=<fasta sequence> --out=<output file> --z=<seed size>" << endl;
 	  cout << cmdline_options << "\n";
           exit(1);
 	}
+	//        cmdline_options.add(desc_extra);
         po::store(po::parse_command_line(argc, argv, cmdline_options), vm);
         po::notify(vm);    
 
@@ -2241,13 +2251,13 @@ int main( int argc, char* argv[] )
             return 1;
         }
 
-        if (vm.count("rmin")) {
+        if (vm.count("minmulti")) {
             cout << "setting minimum multiplicity to " << rmin << ".\n";
         } else {
             cout << "Using default minimum multiplicity (2).\n";
         }
 
-        if (vm.count("rmax")) {
+        if (vm.count("maxmulti")) {
             cout << "setting maximimum multiplicity to " 
                  << rmax << ".\n";
         } else {
@@ -2273,7 +2283,7 @@ int main( int argc, char* argv[] )
         // if less than min pctid set to 90%
 	if (percent_id >= 1 || percent_id < 0.7)
             percent_id = 0.9;
-     
+
         if (vm.count("z")) {
             cout << "seed weight set to " << seed_weight << ".\n";
         } else {
@@ -2645,9 +2655,11 @@ int main( int argc, char* argv[] )
 	//seedml.LoadSequences( &cout );
 	LoadSequences( seedml, &cout );
         //gnSequence in_seq(*seedml.seq_filename[0]);
-	//        maskN(seedml.seq_filename[0],sequence_file);
+	//    maskN(seedml.seq_filename[0],sequence_file);
+      
         vector< int64 > seq_coords;
-        maskN(*seedml.seq_table[0],sequence_file,seq_coords);
+        
+	maskN(*seedml.seq_table[0],sequence_file,seq_coords);
 	//LoadSequences( seedml, &cout );
 
 	if( seed_weight == 0 )
@@ -3161,7 +3173,8 @@ int main( int argc, char* argv[] )
 			      hmm_params = hmm_params2;
 			    if( extend_chains && (!two_hits || (two_hits && M_i->chained_matches.size() > 1 )))
 			    {
-			      rcode = ExtendMatch(M_i, seqtable, hmm_params, w, direction, novel_matches, gap_open, gap_extend, extension_window,min_ext_size,ungapped_extension,consensus_extension, exact_extension);
+                              if (M_i->Length(0) >= min_chain_length)
+         			      rcode = ExtendMatch(M_i, seqtable, hmm_params, w, direction, novel_matches, gap_open, gap_extend, extension_window,min_ext_size,ungapped_extension,consensus_extension, exact_extension);
 			    }
 			    if (rcode == FAILED || rcode == FIXME || novel_matches.size() == 0)
 			    {
@@ -3340,7 +3353,8 @@ int main( int argc, char* argv[] )
          }
 
 	 //tjt: make sure finalize only gets called once!
-	 M_i->finalize(seedml.seq_table);
+	 if (M_i->finalize(seedml.seq_table) == 1)
+	   continue;
 
          if( M_i->SeqCount() == 0 )//what the hell?
             continue;
@@ -3527,7 +3541,7 @@ int main( int argc, char* argv[] )
 	{
 	    vector<string> alignment;
 	    vector< gnSequence* > seq_table( final[fI]->SeqCount(), seedml.seq_table[0] );
-	    mems::GetAlignment(*final[fI], seq_table, alignment);	// expects one seq_table entry per matching component
+	    //	    mems::GetAlignment(*final[fI], seq_table, alignment);	// expects one seq_table entry per matching component
             bool containsN = false;
 	    if(1)
 	    {
@@ -3574,7 +3588,7 @@ int main( int argc, char* argv[] )
 		        continue;
 		}
                 score_final = 0;
-                computeSPScore( alignment, pss, scores_final, score_final);
+		//computeSPScore( alignment, pss, scores_final, score_final);
 		    //*output << "#repeatoire Alignment " << ++alignment_count << endl << *final.at(fI) << endl;
                 final[fI]->spscore = score_final;
                 scored.push_back(final[fI]);
@@ -3607,8 +3621,8 @@ int main( int argc, char* argv[] )
         // 2) sort the result GappedMatchRecords 
 	if (large_repeats)
 		std::sort( scored.begin(), scored.end(), score_by_length );
-	//else if (small_repeats)
-	//	std::sort( scored.begin(), scored.end(), scorecmp );
+	else if (small_repeats)
+		std::sort( scored.begin(), scored.end(), scorecmp );
 	else
 		std::sort( scored.begin(), scored.end(), score_by_sp );
         for( size_t fI = 0; fI < scored.size(); fI++ )
