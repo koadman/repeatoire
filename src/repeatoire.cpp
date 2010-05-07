@@ -103,37 +103,13 @@ public:
 	}
 };
 
-void  maskN(const gnSequence& seq, const string seqfile, vector<int64>& seq_coords)
+int  maskN(const gnSequence& seq, const string seqfile, vector<int64>& seq_coords)
 {
   //vector< int64 > seq_coords;
   // Filter NNNNNs
   gnSequence masked_seq;
   seq_coords.clear();
   maskNNNNN( seq, masked_seq, seq_coords, 0 );
-        
-  // write a raw sequence to a tmp file stored in the first scratch path
-  string rawfile = "dm_rawseq";
-  gnRAWSource::Write( masked_seq, rawfile.c_str() );
-        
-  // write a sequence coordinate file
-  if( seq_coords.size() > 0 )
-    {
-      string coordfile = seqfile + ".coords";
-      ofstream coord_out( coordfile.c_str() );
-      if( !coord_out.is_open() )
-	{
-	  cerr << "Could not open " << coordfile << endl;
-	  throw "";
-	}
-                
-      for( int coordI = 0; coordI < seq_coords.size(); coordI+=2 ){
-	coord_out << seq_coords[ coordI ] << '\t' << seq_coords[ coordI + 1 ] << endl;
-      }
-      coord_out.close();
-    }
-  // load the sorted mer list
-  //((FileSML*)seq)->LoadFile( seqfile );
-  //return seq_coords;
 }
 
 bool scorecmp( GappedMatchRecord* a, GappedMatchRecord* b ) 
@@ -1919,9 +1895,20 @@ void writeXmfa( MatchList& seedml, std::vector< GappedMatchRecord* >& extended_m
 			gmr_list.WriteStandardAlignment(cout);
 		else
 		{
+		        try{
 			ofstream xmfa_out(xmfa_file.c_str());
 			gmr_list.WriteStandardAlignment(xmfa_out);
 			xmfa_out.close();
+			}
+                        catch(exception& e) {
+			  cerr << "Could not write xmfa file" << endl;
+                          return;
+			}
+                        catch(...) {
+                          cerr << "Could not write xmfa file" << endl;
+                          return;
+			}
+
 		}
 	}
 }
@@ -1947,9 +1934,20 @@ void writeXML( MatchList& seedml, std::vector< GappedMatchRecord* >& extended_ma
 			gmr_list.WriteXMLAlignment(cout);
 		else
 		{
+		        try{
 			ofstream xml_out(xml_file.c_str());
 			gmr_list.WriteXMLAlignment(xml_out);
 			xml_out.close();
+			}
+                        catch(exception& e) {
+			  cerr << "Could not write xml file" << endl;
+                          return;
+			}
+                        catch(...) {
+                          cerr << "Could not write xml file" << endl;
+                          return;
+			}
+
 		}
 	}
 }
@@ -2245,6 +2243,16 @@ int main( int argc, char* argv[] )
             return 1;
         }
 
+        if (!vm.count("sequence"))
+	{
+	  cerr << "input sequence file must be specified!" << endl;
+          return 1;
+	}
+        if (! boost::filesystem::exists(sequence_file.c_str()))
+	{
+          cerr << "error loading input sequence: " << sequence_file << " sure t exists?" << endl;
+          return 1;
+	}
         if (vm.count("expert")) 
 	{
             cout << desc_extra << "\n";
@@ -2642,9 +2650,9 @@ int main( int argc, char* argv[] )
 	    free(goodWindows);
 	  }
 
-           
+          cerr << "Tuiuiu filtering completed!";           
 	}
-          cerr << "Tuiuiu filtering completed!";
+
 
  	//
 	// part 1, load sequence and find seed matches using SML and a repeat class...
@@ -2652,14 +2660,21 @@ int main( int argc, char* argv[] )
 	MatchList seedml;
 	seedml.seq_filename = vector< string >( 1, sequence_file);
 	seedml.sml_filename = vector< string >( 1, seedml.seq_filename[0] + ".sml");
-	//seedml.LoadSequences( &cout );
 	LoadSequences( seedml, &cout );
+        if (seedml.seq_table.size() == 0)
+	{
+	  cerr << "error loading input sequence: " << sequence_file << " sure it exists?" << endl;
+          return 1;
+	}
         //gnSequence in_seq(*seedml.seq_filename[0]);
 	//    maskN(seedml.seq_filename[0],sequence_file);
-      
         vector< int64 > seq_coords;
-        
-	maskN(*seedml.seq_table[0],sequence_file,seq_coords);
+        int retcode = 0;
+        if (tuiuiu)
+	{
+	    retcode = maskN(*seedml.seq_table[0],sequence_file,seq_coords);
+            
+	}
 	//LoadSequences( seedml, &cout );
 
 	if( seed_weight == 0 )
@@ -2935,8 +2950,17 @@ int main( int argc, char* argv[] )
 	ofstream seed_out;
 	if ( seed_file.size() > 0)
 	{
-		seed_out.open(seed_file.c_str());
-		std::cout << "Creating seed file.. " << std::endl;
+	       try{
+	       seed_out.open(seed_file.c_str());
+	       std::cout << "Creating seed file.. " << std::endl;
+	       }
+               catch(exception& e) {
+	       cerr << "Could not write seed file" << endl;
+	       }
+               catch(...) {
+               cerr << "Could not write seed file" << endl;
+               
+	       }
 	}
 	//
 	// part 3, create a match position lookup table
@@ -3512,21 +3536,57 @@ int main( int argc, char* argv[] )
 	ofstream aln_out_file;
 	ofstream stats_out_file;
 	if(stat_file != "" && stat_file != "-")
-		stats_out_file.open( stat_file.c_str() );
+	{
+
+	        try{
+		  stats_out_file.open( stat_file.c_str() );
+                  if (stats_out_file.fail())
+		    throw "";
+		}
+                catch(exception& e) {
+		cerr << "Could not write stats file" << endl;
+		}
+                catch(...) {
+                cerr << "Could not write stats file" << endl;
+		}
+	}
 
 	if(outputfile == "" || outputfile == "-")
 		output = &cout;
 	else
 	{
+	        try{
+                output = &cout;
 		aln_out_file.open( outputfile.c_str() );
 		output = &aln_out_file;
+		}
+                catch(exception& e) {
+		cerr << "Could not write output file" << endl;
+
+		}
+                catch(...) {
+                cerr << "Could not write output  file" << endl;
+		}
+                
+
 	}
 	if(output2file == "" || output2file == "-")
 		output2 = &cout;
 	else
 	{
+
+	        try{
+                output2 = &cout;
 		score_out_file.open( output2file.c_str() );
 		output2 = &score_out_file;
+		}
+                catch(exception& e) {
+		cerr << "Could not write score output file" << endl;
+		}
+                catch(...) {
+                cerr << "Could not write score output file" << endl;
+		}
+		output2 = &cout;
 	}
 	vector< GappedMatchRecord* > scored;
 	vector<score_t> scores_final;
