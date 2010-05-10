@@ -2242,7 +2242,7 @@ int main( int argc, char* argv[] )
             cout << desc_main << "\n";
             return 1;
         }
-
+       
         if (!vm.count("sequence"))
 	{
 	  cerr << "input sequence file must be specified!" << endl;
@@ -2292,7 +2292,21 @@ int main( int argc, char* argv[] )
 	if (percent_id >= 1 || percent_id < 0.7)
             percent_id = 0.9;
 
-        if (vm.count("z")) {
+        if (vm.count("z")) 
+        {
+	  if (seed_weight > 30)
+	  {
+            cout << "maximum --z value is 30, currently set to " << seed_weight << endl;
+            cout << "resetting to 30" << endl;
+            seed_weight = 30;
+	  }
+          else if (seed_weight < 5)
+	    {
+            cout << "minimum --z value is 5, currently set to " << seed_weight << endl;
+            cout << "resetting to 5" << endl;
+            seed_weight = 5;
+
+	    }
             cout << "seed weight set to " << seed_weight << ".\n";
         } else {
             cout << "Using default seed weight.\n";
@@ -2687,7 +2701,17 @@ int main( int argc, char* argv[] )
 		seed_rank = INT_MAX;
 		std::cout << "Using solid seed" << std::endl;
 	}
+        try{
 	seedml.LoadSMLs( seed_weight, &cout, seed_rank, solid_seed, !load_sml );
+	}
+        catch(gnException& e) {
+	  return 1;
+
+	}
+        catch(...) {
+	  return 1;
+
+	}
 	int64 seed = getSeed( seed_weight, seed_rank);
 
 	uint seed_size = getSeedLength( seed );
@@ -3558,6 +3582,8 @@ int main( int argc, char* argv[] )
 	        try{
                 output = &cout;
 		aln_out_file.open( outputfile.c_str() );
+                if (aln_out_file.fail())
+		    throw "";
 		output = &aln_out_file;
 		}
                 catch(exception& e) {
@@ -3578,6 +3604,8 @@ int main( int argc, char* argv[] )
 	        try{
                 output2 = &cout;
 		score_out_file.open( output2file.c_str() );
+                if (score_out_file.fail())
+		    throw "";
 		output2 = &score_out_file;
 		}
                 catch(exception& e) {
