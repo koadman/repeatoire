@@ -1,1 +1,75 @@
-Unique sequence goes here
+Repeatoire: De novo detection and multiple alignment of repeat families
+Version 1.0
+
+Please refer to the repeatoire user guide for detailed information on using repeatoire.
+
+usage: ./repeatoire --sequence=<fasta sequence> --out=<output file> --z=<seed size>
+
+Main options:
+  --extend arg (=1)        perform gapped extension?
+  --help                   get help message
+  --large-repeats arg (=1) optimize for large repeats?
+  --minreplen arg (=100)   minimum final repeat length
+  --maxmulti arg (=500)    maximum repeat multiplicity (max copy number)
+  --minmulti arg (=2)      minimum repeat multiplicity (min copy number)
+  --onlydirect arg (=0)    only process seed matches on same strand?
+  --output arg (=reps.out) output file (positions)
+  --sequence arg           FastA sequence input file
+  --solid arg (=0)         use solid/exact seeds?
+  --xmfa arg               XMFA format output (alignments)
+  --z arg (=17)            seed weight
+
+TUIUIU options:
+  --tuiuiu-on arg (=0)  use tuiuiu filtering?
+  --tuiuiu-w arg (=100) tuiuiu window size
+  --tuiuiu-e arg (=12)  tuiuiu edit distance
+  --tuiuiu-r arg (=4)   tuiuiu min multiplicity
+  --tuiuiu-k arg (=6)   tuiuiu  kmer size
+  --tuiuiu-N arg (=2)   tuiuiu output format
+
+Repseek options:
+  --repseek-on arg (=0)          use repseek for 2-copy repeats?
+  --repseek-l arg (=1)           repseek lmin 
+  --repseek-p arg (=0)           repseek pval_lmin
+  --repseek-L arg (=0)           repseek smin
+  --repseek-P arg (=0)           repseek pval_smin
+  --repseek-r arg (=repseek.out) repseek output file
+
+Expert options:
+  --adjgc arg (=1)               adjust for GC content?
+  --allow-redundant arg (=0)     allow redundant alignments?
+  --chain arg (=1)               chain seeds?
+  --consensus-extension arg (=0) perform ungapped extension using consensus?
+  --exact-extension arg (=0)     perform exact ungapped extension?
+  --force-split arg (=0)         force split (repeats with same leftend)
+  --gapopen arg (=0)             gap open penalty
+  --gapextend arg (=0)           gap extension penalty
+  --gapwidth arg (=0)            max gap width between two seeds in a chain 
+  --hgo arg (=4.99999987e-06)    Transition to Homologous
+  --highest arg (=stats.highest) file with highest scoring aln for each multi 
+  --load-sml arg (=0)            try to load existing SML file?
+  --min-ext arg (=3)             minimum extension size
+  --minchainlen arg (=50)        minimum chain length to trigger gapped 
+                                 extension
+  --novel-matches arg (=0)       use novel matches found during gapped 
+                                 extension?
+  --novel-subsets arg (=0)       find novel subset matches?
+  --onlyextended arg (=0)        only output extended matches?
+  --percentid arg (=0.899999976) repeat family % id
+  --score-out arg                output with corresponding score and alignment 
+                                 info 
+  --seeds arg                    seed output file
+  --small-repeats arg (=0)       optimize for small repeats
+  --sp arg (=0)                  minimum Sum-of-Pairs alignment score
+  --split-size arg (=0)          break n-copy repeats into subfamilies of 
+                                 multiplicity <split-size>
+  --tandem arg (=0)              allow tandem repeats?
+  --two-hits arg (=0)            require two hits for gapped extension?
+  --ugo arg (=0.00999999978)     Transition to Unrelated
+  --unalign arg (=1)             unalign non-homologous sequence?
+  --ungapped-chaining arg (=0)   ungapped chaining?
+  --ungapped-extension arg (=0)  ungapped extension?
+  --verbose arg (=0)             enable long-winded output?
+  --window arg (=0)              size of window to use during gapped extension
+  --xml arg                      XML format output
+
