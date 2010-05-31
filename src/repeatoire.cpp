@@ -17,7 +17,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cctype>
-#include <getopt.h>
+//#include <getopt.h>
 #include <ctime>
 #include <cstring>
 
@@ -1980,8 +1980,8 @@ int main( int argc, char* argv[] )
 
         int8_t repseek_nseq;               /* either 1 or 2, 1 being for 1 sequence and 2 for 2 sequences */
 
-        char *repseek_sequence = "";                   /* the first sequence */
-        char *repseek_sequence2= "";             /* the second sequence --only use when repseek_nseq is 2 */
+        char *repseek_sequence = NULL;                   /* the first sequence */
+        char *repseek_sequence2= NULL;             /* the second sequence --only use when repseek_nseq is 2 */
         int32_t size;                     /* the size of the sequence */
         int32_t size2=0;                  /* the size of the second sequence --only use when repseek_nseq is 2*/
         int32_t totalSize;                /* size of (both) sequence(s) */
@@ -1991,7 +1991,7 @@ int main( int argc, char* argv[] )
 
 
         masked_area_table_t *mask=NULL;   /* masking table used during seed detection */
-        char *mask_file="";
+        char *mask_file=NULL;
 
         char opt_shape = 'l';             /* chromosome has to be set at 'l'inear or 'c'ircular */
 
@@ -2522,7 +2522,7 @@ int main( int argc, char* argv[] )
 
 	}
         // part 0, if requested, perform TUIUIU filtering!
-        char *seq, *name = "";
+        char *seq, *name = NULL;
         if (tuiuiu)
 	{
           cerr << "Tuiuiu filtering engaged..." << endl; 
@@ -3629,7 +3629,7 @@ int main( int argc, char* argv[] )
 	{
 	    vector<string> alignment;
 	    vector< gnSequence* > seq_table( final[fI]->SeqCount(), seedml.seq_table[0] );
-	    //	    mems::GetAlignment(*final[fI], seq_table, alignment);	// expects one seq_table entry per matching component
+	    mems::GetAlignment(*final[fI], seq_table, alignment);	// expects one seq_table entry per matching component
             bool containsN = false;
 	    if(1)
 	    {
