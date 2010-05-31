@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h> 
-#include <getopt.h>
+//#include <getopt.h>
 #include <time.h>
 #include <string.h>
 #include "mono_and_multi_commons.h"
