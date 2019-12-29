@@ -8,7 +8,7 @@ AC_CONFIG_AUX_DIR(config)
 dnl Get the target and build system types and add appropriate options
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE([no-define])
+AM_INIT_AUTOMAKE(no-define subdir-objects)
 AM_CONFIG_HEADER([src/config.h])
 
 AC_PREFIX_DEFAULT(/usr/local)
